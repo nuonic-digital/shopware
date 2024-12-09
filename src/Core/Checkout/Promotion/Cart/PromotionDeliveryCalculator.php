@@ -516,7 +516,7 @@ class PromotionDeliveryCalculator
         $originalLineItems = $original->getLineItems()->filterType(PromotionProcessor::LINE_ITEM_TYPE)
             ->filter(fn (LineItem $discountLineItem) => $discountLineItem->getId() === $discount->getId());
 
-        if (count($originalLineItems) === 1) {
+        if (\count($originalLineItems) === 1) {
             $promotionItem->setExtensions($originalLineItems->first()->getExtensions());
         }
 
