@@ -10,17 +10,13 @@ test(`Update an existing Shopware ${process.env.SHOPWARE_UPDATE_FROM} instance.`
 
     await page.goto(process.env.ADMIN_URL);
 
-    await page.getByPlaceholder('Enter your username...').fill('admin');
-    await page.getByPlaceholder('Enter your password...').fill('shopware');
-    await page.getByPlaceholder('Enter your password...').press('Enter');
-
     await expect(page.locator('css=.sw-admin-menu__header-logo').first()).toBeVisible({
         timeout: 20000,
     });
 
     await ((await AdminApiContext.get(`./_info/config`)).json()) as { version: string };
 
-    await page.getByRole('button', { name: 'Open update' }).click();
+    await page.goto('#/sw/settings/shopware/updates/wizard');
 
     await page.getByRole('button', { name: 'Start update' }).click();
 

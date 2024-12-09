@@ -204,7 +204,7 @@ BC check MR:
      when: never
    - !reference [.rules, skip]
    - !reference [.rules, run]
-   - if: '$CI_MERGE_REQUEST_LABELS =~ /.*removes_deprecations.*/'
+   - if: '$CI_MERGE_REQUEST_LABELS =~ /.*removes_deprecations.*/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /.*\/feature\/.*/'
      allow_failure: true
      changes:
          - composer.json
@@ -222,9 +222,8 @@ BC check MR:
 Twig lint (storefront):
   extends: .base-no-setup
   stage: lint
-  allow_failure: true
   image:
-    name: maltejanz/ludtwig:0.8.3
+    name: maltejanz/ludtwig:0.9.0
   rules:
     - changes:
       - 'src/Storefront/Resources/views/ludtwig-config.toml'

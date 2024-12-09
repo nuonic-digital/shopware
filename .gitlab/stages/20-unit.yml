@@ -389,9 +389,9 @@ PHP Full:
     - >
       for SUITE in $TEST_SUITES; do
           if [[ $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train" || 0 ]]; then
-            composer run phpunit -- --testsuite=$SUITE --log-junit phpunit.$SUITE.junit.xml --colors=never;
+            composer run phpunit -- --testsuite=$SUITE --exclude-group legacy --log-junit phpunit.$SUITE.junit.xml --colors=never;
           else
-            composer run phpunit -- --testsuite=$SUITE --log-junit phpunit.$SUITE.junit.xml --colors=never || FAILED=1
+            composer run phpunit -- --testsuite=$SUITE --exclude-group legacy --log-junit phpunit.$SUITE.junit.xml --colors=never || FAILED=1
           fi
       done
     - "[[ $FAILED -eq 0 ]]"

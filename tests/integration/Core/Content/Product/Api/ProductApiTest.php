@@ -28,7 +28,7 @@ class ProductApiTest extends TestCase
     /**
      * @var EntityRepository<ProductCollection>
      */
-    private $repository;
+    private EntityRepository $repository;
 
     protected function setUp(): void
     {
@@ -276,6 +276,9 @@ class ProductApiTest extends TestCase
             'includes' => [
                 'product' => ['id', 'name', 'tax'],
                 'tax' => ['id', 'name'],
+            ],
+            'associations' => [
+                'tax' => [],
             ],
         ], \JSON_THROW_ON_ERROR));
 

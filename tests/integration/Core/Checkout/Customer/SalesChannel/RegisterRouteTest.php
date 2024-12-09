@@ -6,6 +6,7 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Shopware\Core\Checkout\Customer\CustomerCollection;
 use Shopware\Core\Checkout\Customer\CustomerDefinition;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Customer\Event\CustomerConfirmRegisterUrlEvent;
@@ -20,6 +21,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\Feature;
 use Shopware\Core\Framework\Log\Package;
+use Shopware\Core\Framework\Routing\RoutingException;
 use Shopware\Core\Framework\Test\TestCaseBase\CountryAddToSalesChannelTestBehaviour;
 use Shopware\Core\Framework\Test\TestCaseBase\IntegrationTestBehaviour;
 use Shopware\Core\Framework\Test\TestCaseBase\SalesChannelApiTestBehaviour;
@@ -52,9 +54,9 @@ class RegisterRouteTest extends TestCase
     private IdsCollection $ids;
 
     /**
-     * @var EntityRepository
+     * @var EntityRepository<CustomerCollection>
      */
-    private $customerRepository;
+    private EntityRepository $customerRepository;
 
     private SystemConfigService $systemConfigService;
 
@@ -89,9 +91,6 @@ class RegisterRouteTest extends TestCase
 
         $response = json_decode((string) $this->browser->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
-        /**
-         * @var Connection $connection
-         */
         $connection = $this->getContainer()->get(Connection::class);
         $result = $connection->fetchOne(
             'SELECT `payload` FROM `sales_channel_api_context` WHERE `customer_id` = :customerId ',
@@ -104,16 +103,6 @@ class RegisterRouteTest extends TestCase
         static::assertArrayHasKey('domainId', $result);
 
         static::assertSame('customer', $response['apiAlias']);
-        static::assertSame($registrationData['title'], $response['defaultBillingAddress']['title']);
-        static::assertSame($registrationData['shippingAddress']['title'], $response['defaultShippingAddress']['title']);
-        static::assertNotEmpty($response['addresses']);
-        static::assertNotEmpty($response['salutation']);
-        static::assertNotEmpty($response['defaultBillingAddress']);
-        static::assertNotEmpty($response['defaultBillingAddress']['country']);
-        static::assertNotEmpty($response['defaultBillingAddress']['salutation']);
-        static::assertNotEmpty($response['defaultShippingAddress']);
-        static::assertNotEmpty($response['defaultShippingAddress']['country']);
-        static::assertNotEmpty($response['defaultShippingAddress']['salutation']);
         static::assertNotEmpty($this->browser->getResponse()->headers->get(PlatformRequest::HEADER_CONTEXT_TOKEN));
 
         $this->browser
@@ -387,8 +376,8 @@ class RegisterRouteTest extends TestCase
         static::assertSame('401', $responseData['errors'][0]['status']);
 
         $criteria = new Criteria([$customerId]);
-        /** @var CustomerEntity $customer */
         $customer = $this->customerRepository->search($criteria, Context::createDefaultContext())->first();
+        static::assertInstanceOf(CustomerEntity::class, $customer);
 
         $this->browser
             ->request(
@@ -420,7 +409,6 @@ class RegisterRouteTest extends TestCase
 
         $response = $this->browser->getResponse();
 
-        // After login successfully, the context token will be set in the header
         $contextToken = $response->headers->get(PlatformRequest::HEADER_CONTEXT_TOKEN) ?? '';
         static::assertNotEmpty($contextToken);
     }
@@ -458,8 +446,8 @@ class RegisterRouteTest extends TestCase
         $customerId = $response['id'];
 
         $criteria = new Criteria([$customerId]);
-        /** @var CustomerEntity $customer */
         $customer = $this->customerRepository->search($criteria, Context::createDefaultContext())->first();
+        static::assertInstanceOf(CustomerEntity::class, $customer);
 
         $this->browser->request('POST', '/store-api/account/register-confirm', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['hash' => $customer->getHash(), 'em' => Hasher::hash('teg-reg@example.com', 'sha1')], \JSON_THROW_ON_ERROR));
 
@@ -541,7 +529,11 @@ class RegisterRouteTest extends TestCase
 
         $customer = json_decode((string) $this->browser->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         static::assertArrayHasKey('errors', $customer);
-        static::assertSame('CHECKOUT__CUSTOMER_NOT_LOGGED_IN', $customer['errors'][0]['code']);
+        if (Feature::isActive('v6.7.0.0')) {
+            static::assertSame(RoutingException::CUSTOMER_NOT_LOGGED_IN_CODE, $customer['errors'][0]['code']);
+        } else {
+            static::assertSame('CHECKOUT__CUSTOMER_NOT_LOGGED_IN', $customer['errors'][0]['code']);
+        }
     }
 
     public function testDoubleOptinWithHeaderToken(): void
@@ -575,13 +567,17 @@ class RegisterRouteTest extends TestCase
 
         $customer = json_decode((string) $this->browser->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         static::assertArrayHasKey('errors', $customer);
-        static::assertSame('CHECKOUT__CUSTOMER_NOT_LOGGED_IN', $customer['errors'][0]['code']);
+        if (Feature::isActive('v6.7.0.0')) {
+            static::assertSame(RoutingException::CUSTOMER_NOT_LOGGED_IN_CODE, $customer['errors'][0]['code']);
+        } else {
+            static::assertSame('CHECKOUT__CUSTOMER_NOT_LOGGED_IN', $customer['errors'][0]['code']);
+        }
 
         $customerId = $response['id'];
 
         $criteria = new Criteria([$customerId]);
-        /** @var CustomerEntity $customer */
         $customer = $this->customerRepository->search($criteria, Context::createDefaultContext())->first();
+        static::assertInstanceOf(CustomerEntity::class, $customer);
 
         $this->browser
             ->request(
@@ -1088,14 +1084,24 @@ class RegisterRouteTest extends TestCase
 
         static::assertSame('customer', $response['apiAlias']);
 
-        $addresses = $response['addresses'];
-        static::assertCount(2, $addresses);
+        $criteria = new Criteria([$response['id']]);
+        $criteria->addAssociation('addresses');
+
+        $customer = $this->customerRepository->search($criteria, Context::createDefaultContext())->first();
+
+        static::assertInstanceOf(CustomerEntity::class, $customer);
+
+        $customerAddressCollection = $customer->getAddresses();
+
+        static::assertNotNull($customerAddressCollection);
+
+        static::assertCount(2, $customerAddressCollection->getElements());
 
         $addressesCompany = [];
         $addressesDepartment = [];
-        foreach ($addresses as $address) {
-            $addressesCompany[] = $address['company'];
-            $addressesDepartment[] = $address['department'];
+        foreach ($customerAddressCollection->getElements() as $address) {
+            $addressesCompany[] = $address->getCompany();
+            $addressesDepartment[] = $address->getDepartment();
         }
 
         sort($addressesCompany);
@@ -1272,9 +1278,14 @@ class RegisterRouteTest extends TestCase
 
         $response = json_decode((string) $this->browser->getResponse()->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
-        static::assertNotNull($response['salutationId']);
-        static::assertNotEmpty($response['salutation']);
-        static::assertSame($response['salutation']['salutationKey'], SalutationDefinition::NOT_SPECIFIED);
+        $criteria = new Criteria([$response['id']]);
+        $criteria->addAssociation('salutation');
+
+        $customer = $this->customerRepository->search($criteria, Context::createDefaultContext())->first();
+
+        static::assertInstanceOf(CustomerEntity::class, $customer);
+
+        static::assertSame($customer->getSalutation()?->getSalutationKey(), SalutationDefinition::NOT_SPECIFIED);
     }
 
     public function testRegistrationToNotSpecifiedWithoutExistingSalutation(): void

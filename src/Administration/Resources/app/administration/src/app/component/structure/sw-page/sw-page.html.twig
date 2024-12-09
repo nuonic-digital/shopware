@@ -65,6 +65,8 @@
                     <router-link
                         v-if="parentRoute"
                         class="smart-bar__back-btn"
+                        :aria-label="$tc('global.sw-page.backButton')"
+                        :title="$tc('global.sw-page.backButton')"
                         :to="{ name: parentRoute }"
                         :style="{ 'color': pageColor }"
                     >
@@ -152,7 +154,7 @@
                 </slot>
             </div>
         </div>
-        <div class="sw-page__main-content">
+        <div class="sw-page__main-content" :tabindex="0">
             <div
                 class="sw-page__main-content-inner"
                 v-bind="$attrs"

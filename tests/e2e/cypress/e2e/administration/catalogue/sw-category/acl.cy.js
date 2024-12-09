@@ -51,7 +51,8 @@ describe('Category: Test ACL privileges', () => {
             .should('be.visible')
             .should('have.class', 'is--disabled');
         cy.get('.sw-category-entry-point-card__sales-channel-selection')
-            .should('be.visible')
+            .should('be.visible');
+        cy.get('.sw-category-entry-point-card__sales-channel-selection')
             .should('have.class', 'is--disabled');
 
         // open configure home modal
@@ -157,6 +158,10 @@ describe('Category: Test ACL privileges', () => {
             method: 'POST',
             url: `${Cypress.env('apiPath')}/category`,
         }).as('saveData');
+
+        // Wait until skeleton is gone
+        cy.get('.sw-skeleton').should('not.exist');
+        cy.get('.sw-loader').should('not.exist');
 
         // Add category before root one
         cy.clickContextMenuItem(

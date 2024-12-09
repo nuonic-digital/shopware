@@ -55,7 +55,7 @@ class CartRestorer
             $customerContext = $this->replaceContextToken($customerId, $customerContext, $token);
         }
 
-        return $this->enrichCustomerContext($customerContext, $currentContext, $token, $customerId);
+        return $this->enrichCustomerContext($customerContext, $currentContext, $currentContext->getToken(), $customerId);
     }
 
     /**
@@ -175,8 +175,9 @@ class CartRestorer
 
         $guestCart = $this->cartService->getCart($token, $currentContext);
         $customerCart = $this->cartService->getCart($customerContext->getToken(), $customerContext);
+        $cartsAreIdentical = $token === $customerContext->getToken();
 
-        if ($guestCart->getLineItems()->count() > 0) {
+        if ($guestCart->getLineItems()->count() > 0 && !$cartsAreIdentical) {
             $restoredCart = $this->mergeCart($customerCart, $guestCart, $customerContext);
         } else {
             $restoredCart = $this->cartService->recalculate($customerCart, $customerContext);

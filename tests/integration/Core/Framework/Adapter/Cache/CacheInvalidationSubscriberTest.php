@@ -48,7 +48,8 @@ class CacheInvalidationSubscriberTest extends TestCase
             $this->cacheInvalidatorMock,
             $this->getContainer()->get(Connection::class),
             false,
-            false
+            false,
+            true
         );
     }
 

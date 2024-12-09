@@ -106,6 +106,30 @@ class ThemeDumpCommandTest extends TestCase
         $commandTester->assertCommandIsSuccessful();
     }
 
+    public function testExecuteShouldSuccessWithoutInteraction(): void
+    {
+        $this->setUpExampleThemes();
+
+        $themeFileResolverMock = new ThemeFileResolverMock();
+        $themeFilesystemResolverMock = $this->createMock(ThemeFilesystemResolver::class);
+        $themeFilesystemResolverMock->method('getFilesystemForStorefrontConfig')->willReturn(new StaticFilesystem());
+
+        $themeDumpCommand = new ThemeDumpCommand(
+            $this->getPluginRegistryMock(),
+            $themeFileResolverMock,
+            $this->getContainer()->get('theme.repository'),
+            $this->getContainer()->getParameter('kernel.project_dir'),
+            $this->createMock(StaticFileConfigDumper::class),
+            $themeFilesystemResolverMock
+        );
+        $themeDumpCommand->setHelperSet(new HelperSet([new QuestionHelper()]));
+
+        $commandTester = new CommandTester($themeDumpCommand);
+        $commandTester->execute([], ['interactive' => false]);
+
+        $commandTester->assertCommandIsSuccessful();
+    }
+
     /**
      * @return list<array{themeId: string|null, domainUrl: string|null}>
      */

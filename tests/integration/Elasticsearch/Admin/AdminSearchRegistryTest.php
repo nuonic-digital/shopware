@@ -61,7 +61,7 @@ class AdminSearchRegistryTest extends TestCase
         $this->registry = new AdminSearchRegistry(
             ['promotion' => $indexer],
             $this->connection,
-            $this->createMock(MessageBusInterface::class),
+            $this->getDiContainer()->get(MessageBusInterface::class),
             $this->createMock(EventDispatcherInterface::class),
             $this->client,
             $searchHelper,
@@ -113,6 +113,8 @@ class AdminSearchRegistryTest extends TestCase
                 ),
             ], Context::createDefaultContext()),
         ]), []));
+
+        $this->runWorker();
 
         $index = $c->fetchOne('SELECT `index` FROM `admin_elasticsearch_index_task`');
 

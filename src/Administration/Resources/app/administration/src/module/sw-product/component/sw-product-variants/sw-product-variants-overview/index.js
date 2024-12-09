@@ -300,6 +300,7 @@ export default {
                     .addFilter(Criteria.multi('AND', productStatesFilter));
 
                 searchCriteria.getAssociation('media').addSorting(Criteria.sort('position'));
+                searchCriteria.addAssociation('media.media');
 
                 searchCriteria
                     .getAssociation('options')
@@ -325,6 +326,10 @@ export default {
                     searchCriteria.addSorting(Criteria.sort('product.options.name', this.sortDirection));
                 } else {
                     searchCriteria.addSorting(Criteria.sort(this.sortBy, this.sortDirection));
+                }
+
+                if (this.sortBy !== 'productNumber') {
+                    searchCriteria.addSorting(Criteria.sort('product.productNumber', this.sortDirection));
                 }
 
                 // Start search
