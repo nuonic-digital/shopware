@@ -8,4 +8,3 @@ author_github: g-volker
 # CORE
 * Changed the way the PromotionDeliveryCalculator works to fix the extension handling. Retrieves the extension
     from the old promotion LinteItem and adds it to the new promotion LineItem in order for it to not be created again later.
-    ```
